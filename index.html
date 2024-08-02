@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home Inventory App</title>
+    <style>
+        :root {
+            --button-greyed-out: #2c2c2c;
+            --background-color: #2a2a2a; /*#121212; */
+            --card-background: #383838;  /*#1e1e1e;  */
+            --text-color: #ffffff;
+            --button-background: #32ac71;
+            --button-hover: #0b552b;
+            --border-color: #333333;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--background-color);
+            color: var(--text-color);
+        }
+
+        form {
+            
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            align-items: center;
+            align-content: space-between;
+        }
+
+        input[type="text"] {
+            padding: 10px;
+            margin-block: 0.5em;
+            
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            background-color: #333333;
+            color: var(--text-color);
+            width: 9em;
+            text-align: center;
+        }
+
+        button {
+            cursor: pointer;
+            padding: 10px 15px;
+            margin-inline: 1em;
+            margin-bottom: 1em;
+            /* min-width: 8em; */
+            width: 10em;
+            border-radius: 5px;
+            border: none;
+            background-color: var(--button-background);
+            color: var(--text-color);
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: var(--button-hover);
+        }
+
+        .card {
+            background: var(--card-background);
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            margin: 10px 0;
+            padding: 20px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin-top: 10px;
+        }
+        h3,p {
+            max-width: 80vw;
+            overflow-wrap: break-word;
+        }
+        .search-div {
+            display: flex;
+        }
+
+        @media (orientation: portrait) {
+            .card {
+                flex-direction: column;
+                align-items: center;
+            }
+            .button-container {
+                flex-direction: row;
+                justify-content: center;
+            }
+        }
+
+        /* Hide the table and use cards instead */
+        table {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <form>
+        <input type="text" class="todo" placeholder="Add New Item">
+        <input type="text" class="location" placeholder="Add Location">
+        <button type="button" class="add" onclick="addData()">Add New Item</button>
+        <button type="button" class="update" onclick="">Update Item</button>
+        <br>
+        <br>
+
+        <input type="text" id="searchBarItem" placeholder="Search Item Name" onkeyup="filterItems()">
+        <input type="text" id="searchBarLocation" placeholder="Search Item Location" onkeyup="filterItems()">
+    </form>
+    <br>
+    <div id="cardContainer"></div>
+
+    <script>
+        var api = "https://script.google.com/macros/s/AKfycbxSNsiJrZIC6jp7go-WnObOKLltbK3ht-HyIbZEnycXRIm1-T_GMNzJ8tDXUcLaXq5aRQ/exec";
+
+        var form = document.querySelector('form');
+        var add = document.querySelector(".add");
+        var cardContainer = document.getElementById('cardContainer');
+
+        function addData() {
+            add.textContent = "Adding....";
+            let obj = {
+                todo: form[0].value,
+                location: form[1].value
+            };
+
+            fetch(api, {
+                method: "POST",
+                body: JSON.stringify(obj)
+            })
+            .then(res => res.text())
+            .then(data => {
+                readData();
+                alert(data);
+                add.textContent = "Add ToDo";
+                form.reset();
+            });
+        }
+
+        function readData() {
+            fetch(api)
+            .then(res => res.json())
+            .then(data => {
+                let todo = data.todo;
+                displayItems(todo);
+            });
+        }
+
+        function displayItems(todo) {
+            cardContainer.innerHTML = ""; // Clear existing items
+            todo.forEach(each => {
+                let card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <h3>${each[1]}</h3>
+                    <p>${each[2]}</p>
+                    <div class="button-container">
+                        <button class="edit" onclick="">Edit</button>
+                        <button class="delete" onclick="delData(${each[0]})">Delete</button>
+                    </div>
+                `;
+                cardContainer.appendChild(card);
+            });
+        }
+
+        function filterItems() {
+            const searchValueItem = document.getElementById('searchBarItem').value.toLowerCase();
+            const searchValueLocation = document.getElementById('searchBarLocation').value.toLowerCase();
+            const cards = cardContainer.getElementsByClassName('card');
+
+            for (let i = 0; i < cards.length; i++) {
+                const itemName = cards[i].getElementsByTagName('h3')[0].textContent.toLowerCase();
+                const itemLocation = cards[i].getElementsByTagName('p')[0].textContent.toLowerCase();
+
+                const matchesItemName = itemName.includes(searchValueItem);
+                const matchesItemLocation = itemLocation.includes(searchValueLocation);
+
+                // Show the card if it matches either the item name or the location
+                if (matchesItemName && matchesItemLocation) {
+                    cards[i].style.display = ""; // Show the card
+                } else if (searchValueItem === "" && matchesItemLocation) {
+                    cards[i].style.display = ""; // Show the card if only location matches
+                } else if (matchesItemName && searchValueLocation === "") {
+                    cards[i].style.display = ""; // Show the card if only item name matches
+                } else {
+                    cards[i].style.display = "none"; // Hide the card
+                }
+            }
+        }
+
+        function delData(id) {
+            var delbtn = event.target;
+            delbtn.textContent = "Deleting...";
+            delbtn.style.backgroundColor = "#a1a1a1";
+
+            fetch(api + `?del=true&id=${id}`)
+            .then(res => res.text())
+            .then(data => {
+                readData();
+                alert(data);
+            });
+        }
+
+        readData();
+    </script>
+</body>
+</html>
