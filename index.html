@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home Inventory App</title>
+    <title>Home Inventory App v1.4</title>
     <style>
         :root {
             --button-greyed-out: #2c2c2c;
@@ -42,6 +42,15 @@
             color: var(--text-color);
             width: 9em;
             text-align: center;
+        }
+        select {
+            padding: 0.1em;
+            padding-block: 0.7em;
+            /* margin-right: 0.1em; */
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            background-color: #333333;
+            color: var(--text-color);
         }
 
         button {
@@ -104,14 +113,33 @@
         table {
             display: none;
         }
+        #loading {
+            text-align: center;
+        }
+        #update {
+            visibility: hidden;
+        }
     </style>
 </head>
 <body>
     <form>
-        <input type="text" class="todo" placeholder="Add New Item">
-        <input type="text" class="location" placeholder="Add Location">
+        <input type="text" class="todo" id="todo" placeholder="Add New Item">
+        <select id="locationDropdown" class="location">
+            <option value="Misc.">Add Item Location...</option>
+            <option value="Big Blue Trolley Bag">Big Blue Trolley Bag</option>
+            <option value="Big Grey Trolley Bag">Big Grey Trolley Bag</option>
+            <option value="Small Trolley Bag">Small Trolley Bag</option>
+            <option value="Kitchen Big Container"> Kitchen Big Container</option>
+            <option value="Wardrobe Drawer 1">Wardrobe Drawer 1 </option>
+            <option value="Wardrobe Drawer 2"> Wardrobe Drawer 2</option>
+            <option value="Wardrobe Upper Shelf"> Wardrobe Upper Shelf</option>
+            <option value="Wardrobe Middle Shelf"> Wardrobe Middle Shelf</option>
+            <option value="Wardrobe Lower Shelf">Wardrobe Lower Shelf </option>
+            
+        </select>
+        
         <button type="button" class="add" onclick="addData()">Add New Item</button>
-        <button type="button" class="update" onclick="">Update Item</button>
+        <button type="button" class="update" id="update"onclick="updateCall()">Update Item</button>
         <br>
         <br>
 
@@ -120,6 +148,7 @@
     </form>
     <br>
     <div id="cardContainer"></div>
+    <h1 id="loading"></h1>
 
     <script>
         var api = "https://script.google.com/macros/s/AKfycbxSNsiJrZIC6jp7go-WnObOKLltbK3ht-HyIbZEnycXRIm1-T_GMNzJ8tDXUcLaXq5aRQ/exec";
@@ -127,12 +156,15 @@
         var form = document.querySelector('form');
         var add = document.querySelector(".add");
         var cardContainer = document.getElementById('cardContainer');
+        var locationDropdown = document.getElementById('locationDropdown');
+        var loading = document.getElementById('loading');
+        var itemName = document.getElementById('todo');
 
         function addData() {
             add.textContent = "Adding....";
             let obj = {
                 todo: form[0].value,
-                location: form[1].value
+                location: locationDropdown.value
             };
 
             fetch(api, {
@@ -143,12 +175,15 @@
             .then(data => {
                 readData();
                 alert(data);
-                add.textContent = "Add ToDo";
+                add.textContent = "Add New Item";
                 form.reset();
             });
         }
 
         function readData() {
+            loading.style.display = "block";
+            loading.textContent ="Data Loading....";
+
             fetch(api)
             .then(res => res.json())
             .then(data => {
@@ -166,10 +201,11 @@
                     <h3>${each[1]}</h3>
                     <p>${each[2]}</p>
                     <div class="button-container">
-                        <button class="edit" onclick="">Edit</button>
+                        <button class="edit" onclick="updateCall(this,${each[0]})">Edit</button>
                         <button class="delete" onclick="delData(${each[0]})">Delete</button>
                     </div>
                 `;
+                loading.style.display = "none";
                 cardContainer.appendChild(card);
             });
         }
@@ -210,6 +246,57 @@
                 readData();
                 alert(data);
             });
+        }
+
+        function updateCall(elem,id){
+            add.style.visibility = "hidden";
+            update.style.visibility = "visible";
+            //let location = elem.parentElement.previousElementSibling;
+            let todo = elem.parentElement.previousElementSibling.previousElementSibling.textContent;
+            //console.log(todo);
+            //console.log(location);
+            form[0].value = todo;
+            update.setAttribute("onclick", `updateData(${id})`);
+            
+            itemName.scrollIntoView({ behavior: 'smooth', block: 'center' }); // Scroll to the input field
+            itemName.focus();
+        }
+
+        function updateData(id){
+            /*
+            const data = {
+                id: id,
+                data1: form[0].value,
+                data2: locationDropdown.value
+            };
+
+            fetch(api+'?update=true', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Success:', data);
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+            }); */
+
+            
+            fetch(api + `?update=true&id=${id}&data1=${form[0].value}&data2=${locationDropdown.value}`)
+            .then(res => res.text())
+            .then(data => {
+                readData();
+                alert(data);
+                form.reset();
+                add.style.visibility = "visible";
+                update.style.visibility = "hidden";
+            }); 
+
+
         }
 
         readData();
