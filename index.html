@@ -6,7 +6,7 @@
     <meta name="Home Inventory Tracker App" content="Single Page App" />
     <link rel="icon" type="image/png" href="flavicon.png">
     <meta name="keywords" content="HTML, CSS, JavaScript" />
-    <title>Home Inventory App v1.4</title>
+    <title>Home Inventory App v1.8</title>
     <style>
         :root {
             --button-greyed-out: #2c2c2c;
@@ -16,6 +16,10 @@
             --button-background: #32ac71;
             --button-hover: #0b552b;
             --border-color: #333333;
+            --text-color-dropdown-menu: #848484;
+        }
+        html {
+            overflow-y: scroll;
         }
 
         body {
@@ -53,7 +57,7 @@
             border: 1px solid var(--border-color);
             border-radius: 5px;
             background-color: #333333;
-            color: var(--text-color);
+            color: var(--text-color-dropdown-menu);
             padding-left: 0.5em;
         }
 
@@ -117,52 +121,126 @@
         table {
             display: none;
         }
-        #loading {
+        #loading, #loading2 {
             text-align: center;
         }
         #update {
             visibility: hidden;
         }
+        #master-panel-1, #master-panel-2 {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        #master-panel-2 {
+            display: none;
+        }
+        .panel-toggle {
+            position: fixed;
+            top: 3px;
+            margin: 0;
+            padding: 0;
+            right: 6px;
+            background-color: transparent;
+            font-size: medium;
+            width: auto;
+            height: auto;
+            opacity: 50%;
+        }
+        .update2, .add2 {
+            margin-bottom: 0;
+        }
+        .update2 {
+            display: none;
+        }
     </style>
 </head>
 <body>
-    <form>
-        <input type="text" class="todo" id="todo" placeholder="Add New Item">
-        <select id="locationDropdown" class="location">
-            <option value="Misc.">Add Item Location...</option>
-            <option value="Big Blue Trolley Bag">Big Blue Trolley Bag</option>
-            <option value="Big Grey Trolley Bag">Big Grey Trolley Bag</option>
-            <option value="Small Trolley Bag">Small Trolley Bag</option>
-            <option value="Kitchen Big Container"> Kitchen Big Container</option>
-            <option value="Wardrobe Drawer 1">Wardrobe Drawer 1 </option>
-            <option value="Wardrobe Drawer 2"> Wardrobe Drawer 2</option>
-            <option value="Wardrobe Upper Shelf"> Wardrobe Upper Shelf</option>
-            <option value="Wardrobe Middle Shelf"> Wardrobe Middle Shelf</option>
-            <option value="Wardrobe Lower Shelf">Wardrobe Lower Shelf </option>
+    <div class="master-panel-1" id="master-panel-1">
+        <button class="panel-toggle" onclick="showPanel2()">+</button>
+        <form>
+            <input type="text" class="todo" id="todo" placeholder="Add New Item">
+            <select id="locationDropdown" class="location">
+                <option value="Misc.">Add Item Location...</option>
+            </select>
             
-        </select>
-        
-        <button type="button" class="add" onclick="addData()">Add New Item</button>
-        <button type="button" class="update" id="update"onclick="updateCall()">Update Item</button>
+            <button type="button" class="add" onclick="addData()">Add New Item</button>
+            <button type="button" class="update" id="update"onclick="updateCall()">Update Item</button>
+            <br>
+            <br>
+    
+            <input type="text" id="searchBarItem" placeholder="Search Item Name" onkeyup="filterItems()">
+            <input type="text" id="searchBarLocation" placeholder="Search Item Location" onkeyup="filterItems()">
+        </form>
         <br>
-        <br>
+        <div id="cardContainer"></div>
+        <h1 id="loading"></h1>
 
-        <input type="text" id="searchBarItem" placeholder="Search Item Name" onkeyup="filterItems()">
-        <input type="text" id="searchBarLocation" placeholder="Search Item Location" onkeyup="filterItems()">
-    </form>
-    <br>
-    <div id="cardContainer"></div>
-    <h1 id="loading"></h1>
+    </div>
+    
+
+
+
+    <div class="master-panel-2" id="master-panel-2" >
+        <button class="panel-toggle" onclick="showPanel1()">+</button>
+        <form class="form2" id="form2">
+            <input type="text" class="todo" id="todo2" placeholder="Add New Item">
+            <button type="button" class="add2" onclick="addOptions()">Add New Option</button>
+            <button type="button" class="update2" onclick="updateOptions()">Update Option</button>
+        </form>
+        <br>
+        <input type="text" id="searchBarItem" placeholder="Search by Item Name" onkeyup="filterItems()">
+        <br><br>
+        <table>
+            <thead>
+                <tr>
+                    <th>Id</th>
+                    <th>Item Name</th>
+                    <th>Item Location</th>
+                    <th>Update</th>
+                    <th>Delete</th>
+                </tr>
+            </thead>
+            
+            <div id="cardContainer2"></div>
+            <h1 id="loading2"></h1>
+        </table>
+        
+
+    </div>
 
     <script>
         var api = "https://script.google.com/macros/s/AKfycbxSNsiJrZIC6jp7go-WnObOKLltbK3ht-HyIbZEnycXRIm1-T_GMNzJ8tDXUcLaXq5aRQ/exec";
 
+        //---Variables for Master Panel 1 (Main Page) ----------/////////////////////////
+
         var form = document.querySelector('form');
         var add = document.querySelector(".add");
+        var update = document.querySelector(".update");
         var cardContainer = document.getElementById('cardContainer');
         var locationDropdown = document.getElementById('locationDropdown');
         var loading = document.getElementById('loading');
         var itemName = document.getElementById('todo');
+        var masterPanel1 = document.getElementById('master-panel-1');
+        var masterPanel2 = document.getElementById('master-panel-2');
+        var flag_FirstLoad = true;
+
+
+        //---Variables for Master Panel 2 (Drop Down Options for Locations) ----------//////////
+
+        var form2 = document.querySelector('.form2');
+        var add2 = document.querySelector(".add2");
+        var update2 = document.querySelector(".update2");
+        var tbody2 = document.querySelector('.tbody2');
+        var cardContainer2 = document.getElementById('cardContainer2');
+        var loading2 = document.getElementById('loading2');
+        var newOptionInput = document.getElementById('todo2');
+        //console.log(newOptionInput.value);
+        /*
+        console.log(form2);
+        console.log(add2);
+        console.log(tbody2); 
+        */
 
         function addData() {
             add.textContent = "Adding....";
@@ -194,6 +272,11 @@
                 let todo = data.todo;
                 displayItems(todo);
             });
+            if (flag_FirstLoad){
+                readLocationValues();
+                flag_FirstLoad = false;
+                console.log("if clause executed for first load...");
+            }
         }
 
         function displayItems(todo) {
@@ -267,6 +350,19 @@
         }
 
         function updateData(id){
+            update.textContent = "Updating...";
+
+            fetch(api + `?update=true&id=${id}&data1=${form[0].value}&data2=${locationDropdown.value}`)
+            .then(res => res.text())
+            .then(data => {
+                readData();
+                alert(data);
+                form.reset();
+                update.textContent = "Update Item";
+                add.style.visibility = "visible";
+                update.style.visibility = "hidden";
+            }); 
+
             /*
             const data = {
                 id: id,
@@ -289,18 +385,6 @@
                 console.error('Error:', error);
             }); */
 
-            
-            fetch(api + `?update=true&id=${id}&data1=${form[0].value}&data2=${locationDropdown.value}`)
-            .then(res => res.text())
-            .then(data => {
-                readData();
-                alert(data);
-                form.reset();
-                add.style.visibility = "visible";
-                update.style.visibility = "hidden";
-            }); 
-
-
         }
 
         readData();
@@ -318,6 +402,136 @@
             }
         }
         window.onbeforeunload = application_closing_prompt;
+
+        function showPanel2() {
+            masterPanel1.style.display = "none";
+            masterPanel2.style.display = "unset";
+            loading2.style.display = "block";
+            loading2.textContent ="Drop Down Options for Locations Loading....";
+            readLocationValues();
+
+        }
+
+///////////////////////// Code SECTION FOR PAGE 2 ///////////////////////////////////////////////////
+
+        function showPanel1() {
+            masterPanel2.style.display = "none";
+            masterPanel1.style.display = "unset";
+        }
+
+        function readLocationValues() {
+
+            fetch(api + `?dropdown=true`)
+            .then(res => res.json())
+            .then(data => {
+                let todo = data.todo;
+                locationDropdown.innerHTML = ""; // Clear existing Drop Down Options
+                cardContainer2.innerHTML = ""; // Clear existing items
+                //console.log(todo);
+                //displayItems(todo);
+                /*
+                todo.forEach(each => {
+                    let tr = document.createElement('tr');
+                    console.log(each[1]);
+                    tr.innerHTML = `
+                        
+                        <div class="data">${each[1]}</div>
+                        
+                    `;
+                    tbody2.appendChild(tr);
+                    tbody2.append(tr);
+                }); */
+
+                todo.forEach(each => {
+                    let card = document.createElement('div');
+                    var option = document.createElement("option");
+                    card.className = 'card';
+                    card.innerHTML = `
+                        <h3>${each[1]}</h3>
+                        <div class="button-container">
+                            <button class="edit" onclick="updateCall2(this,${each[0]})">Edit</button>
+                            <button class="delete" onclick="delOption(${each[0]})">Delete</button>
+                        </div>
+                    `;
+                    
+                    loading2.style.display = "none";
+                    cardContainer2.appendChild(card);
+                    option.text = each[1];
+                    option.value = each[1];
+                    locationDropdown.add(option);
+                });
+            });
+        }
+
+        function addOptions() {
+            
+            add2.textContent = "Adding....";
+            fetch(api + `?newoption=true&data=${newOptionInput.value}`)
+            .then(res => res.text())
+            .then(data => {
+                //readData();
+                alert(data);
+                add2.textContent = "Add New Option";
+                //add2.style.display = "none";
+                //update2.style.display = "unset";
+                newOptionInput.value = "";
+                readLocationValues();
+            });
+
+        }
+
+
+        function updateOptions(id) {
+            update2.textContent = "Updating...";
+
+            fetch(api + `?changeoption=true&id=${id}&data1=${newOptionInput.value}`)
+            .then(res => res.text())
+            .then(data => {
+                //readData();
+                readLocationValues();
+                alert(data);
+                update2.textContent = "Update Option";
+                update2.style.display = "none";
+                add2.style.display = "unset";
+                newOptionInput.value = "";
+            }); 
+            
+
+        }
+
+        function updateCall2(elem,id){
+            add2.style.display = "none";
+            update2.style.display = "unset";
+            //let location = elem.parentElement.previousElementSibling;
+            let todo = elem.parentElement.previousElementSibling.textContent;
+            //console.log(todo);
+            //console.log(location);
+            newOptionInput.value = todo;
+            update2.setAttribute("onclick", `updateOptions(${id})`);
+            
+            newOptionInput.scrollIntoView({ behavior: 'smooth', block: 'center' }); // Scroll to the input field
+            newOptionInput.focus();
+        }
+
+
+        function delOption(id) {
+            var delbtn = event.target;
+            delbtn.textContent = "Deleting...";
+            delbtn.style.backgroundColor = "#a1a1a1";
+
+            fetch(api + `?deloption=true&id=${id}`)
+            .then(res => res.text())
+            .then(data => {
+                readLocationValues();
+                alert(data);
+            });
+        }
+
+
+
+
+
+
     </script>
 </body>
 </html>
